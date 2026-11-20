@@ -1,0 +1,9 @@
+/build/
+/build-*/
+*.mp4
+*.gray
+*.log
+perf.data*
+/baseline.txt
+/detector.txt
+
