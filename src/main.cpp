@@ -15,7 +15,7 @@ struct MotionState {
     std::ofstream mask_file{"changes.gray", std::ios::binary};
 };
 
-/* Helper Function */
+/* Helper Functions */
 
 static bool map_sample(GstSample* sample, GstVideoFrame* out) {
     GstCaps* caps = gst_sample_get_caps(sample);
@@ -27,7 +27,7 @@ static bool map_sample(GstSample* sample, GstVideoFrame* out) {
     return gst_video_frame_map(out, &info, buffer, GST_MAP_READ);
 }
 
-/* END Helper Function */
+/* END Helper Functions */
 
 static GstFlowReturn on_frame(GstAppSink* sink, gpointer user_data) {
 
@@ -80,20 +80,7 @@ static GstFlowReturn on_frame(GstAppSink* sink, gpointer user_data) {
                 }
             }
         }
-        /*
-        for(int i = 0; i < current_width * current_height; i++) {
-            if (std::abs(int(current_pixels[i]) - int(previous_pixels[i])) >= threshold) {
-                ++changed;
 
-                motion->mask[static_cast<std::size_t>(y) * width + i] = 255;
-            }
-            const bool active_now = changed <= 700 || changed >= 900;
-            if (active_now != motion->active) {
-                std::cout << (active_now ? "motion started\n" : "motion ended\n");
-                motion->active = active_now;
-            }
-        }
-        */
 
         if (!motion->active && changed >= 900) {
             motion-> active = true;
@@ -106,28 +93,7 @@ static GstFlowReturn on_frame(GstAppSink* sink, gpointer user_data) {
         gst_video_frame_unmap(&previous_frame);
         gst_sample_unref(motion->previous);
     }
-    /* 
-    GstVideoInfo info{};
-    GstVideoFrame frame{};
-    GstCaps* caps = gst_sample_get_caps(sample);
-    GstBuffer* buffer = gst_sample_get_buffer(sample);
 
-    if (    !caps || !buffer || !gst_video_info_from_caps(&info, caps) || 
-            !gst_video_frame_map(&frame, &info, buffer, GST_MAP_READ)) {
-
-        gst_sample_unref(sample);
-        return GST_FLOW_ERROR;
-    }
-    
-    const auto* pixels = GST_VIDEO_FRAME_COMP_DATA(&frame, 0);
-    const int width = GST_VIDEO_FRAME_WIDTH(&frame);
-    const int height = GST_VIDEO_FRAME_HEIGHT(&frame);
-    const int stride = GST_VIDEO_FRAME_PLANE_STRIDE(&frame, 0);
-
-    const auto* middle_row = pixels + (height / 2) * static_cast<gssize>(stride);
-    std::cout << width << "x" << height << "  center pixel = " << static_cast<int>(middle_row[width / 2]) << '\n';
-
-    */
     motion->mask_file.write(
             reinterpret_cast<const char*>(motion->mask.data()),
             static_cast<std::streamsize>(motion->mask.size()));
@@ -161,7 +127,6 @@ int main(int argc, char* argv[]) {
 
             // Frame access branch
             "t. ! queue max-size-buffers=3 max-size-bytes=0 max-size-time=0 leaky=downstream "
-            "! identity sleep-time=120000 "
             "! videoconvert ! video/x-raw,format=GRAY8 "
             "! appsink name=frames emit-signals=true sync=false",
             &parse_error);
@@ -189,7 +154,6 @@ int main(int argc, char* argv[]) {
 
     /* Error handling */
     bus = gst_element_get_bus(pipeline);
-//    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
     const auto message_types = static_cast<GstMessageType>(GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, message_types);
 
@@ -209,7 +173,6 @@ int main(int argc, char* argv[]) {
     } 
 
     /* Free resources */
-    gst_element_set_state(pipeline, GST_STATE_NULL);
     if (motion.previous) gst_sample_unref(motion.previous);
     gst_object_unref(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);   
